@@ -1,10 +1,12 @@
 const Pool = require('pg').Pool
+const settings = require('./settings.json');
+
 const pool = new Pool({
-    user: 'postgres',
-    host: 'rory.local',
-    database: 'connected_users',
-    password: '',
-    port: 5432,
+    user: settings.pg.user,
+    host: settings.pg.host,
+    database: settings.pg.database,
+    password: settings.pg.password,
+    port: settings.pg.port,
 })
 const getUsers = (request, response) => {
     pool.query('SELECT * FROM users ORDER BY username ASC', (error, results) => {
