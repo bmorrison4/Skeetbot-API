@@ -9,36 +9,48 @@ const pool = new Pool({
     port: settings.pg.port,
 })
 const getUsers = (request, response) => {
+    console.log("GET /users");
     if (request.header('key') === settings.api.key) {
 
         pool.query('SELECT * FROM users ORDER BY username ASC', (error, results) => {
             if (error) {
-                throw error
+                console.log(error.code);
+                response.status(500).send(`Internal Server Error: ${error.code}`)
+
+            } else {
+                response.status(200).json(results.rows)
             }
-            response.status(200).json(results.rows)
         })
+    } else {
+        response.status(401).send("Unauthorized");
     }
-    response.status(401).end();
 }
 
 const getUserById = (request, response) => {
     const username = request.params.username
 
+    console.log(`GET /users/${username}`);
+
     if (request.header('key') === settings.api.key) {
 
         pool.query('SELECT * FROM users WHERE username = $1', [username], (error, results) => {
             if (error) {
-                throw error
+                console.log(error.code);
+                response.status(500).send(`Internal Server Error: ${error.code}`)
+            } else {
+                response.status(200).send(results.rows)
             }
-            response.status(200).json(results.rows)
         })
+    } else {
+        response.status(401).send("Unauthorized");
     }
-    response.status(401).end();
 
 }
 
-const createUser = (request, response, next) => {
+const createUser = (request, response) => {
     const { username, ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
+
+    console.log("POST /users")
 
     if (request.header('key') === settings.api.key) {
         pool.query(
@@ -46,22 +58,21 @@ const createUser = (request, response, next) => {
             [username, ip, username_banned, ip_banned, useragent, cores, gpu, last_seen], (error, results) => {
                 if (error) {
                     console.log(error.code);
-                    // next(error);
-                    if (error.code === '23505') {
-                        response.status(409).send(error.detail);
-                    }
-
+                    response.status(500).send(`Internal Server Error: ${error.code}`);
                 } else {
-                    response.status(201).send(`User added with ID: ${results.insertUsername}`)
+                    response.status(201).send(`User added with ID: ${username}`)
                 }
             })
+    } else {
+        response.status(401).send("Unauthorized");
     }
-    response.status(401).end();
 }
 
 const updateUser = (request, response) => {
     const username = request.params.username
     const { ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
+
+    console.log(`PUT /users/${username}`)
 
     if (request.header('key') === settings.api.key) {
         pool.query(
@@ -69,26 +80,35 @@ const updateUser = (request, response) => {
             [ip, username_banned, ip_banned, useragent, cores, gpu, last_seen, username],
             (error, results) => {
                 if (error) {
-                    throw error
+                    console.log(error.code);
+                    response.status(500).send(`Internal Server Error: ${error.code}`)
+                } else {
+                    response.status(200).send(`User modified with usernmame: ${username}`)
                 }
-                response.status(200).send(`User modified with usernmame: ${username}`)
             })
+    } else {
+        response.status(401).send("Unauthorized");
     }
-    response.status(401).end();
 }
 
 const deleteUser = (request, response) => {
     const username = request.params.username
 
+    console.log(`DEL /users/${username}`)
+
     if (request.header('key') === settings.api.key) {
         pool.query('DELETE FROM users WHERE username = $1', [username], (error, results) => {
             if (error) {
-                throw error
+                console.log(error.code);
+                response.status(500).send(`Internal Server Error: ${error.code}`)
+            } else {
+                response.status(200).send(`User deleted with ID: ${username}`)
             }
-            response.status(200).send(`User deleted with ID: ${username}`)
         })
+    } else {
+        response.status(401).send("Unauthorized");
     }
-    response.status(401).end();
+
 }
 
 module.exports = {
