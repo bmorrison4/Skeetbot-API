@@ -8,6 +8,15 @@ const pool = new Pool({
     password: settings.pg.password,
     port: settings.pg.port,
 })
+
+/**
+ * GET /users
+ * 
+ * Gets all users in the database, sorted in alphabetical order by username.
+ * 
+ * @param {*} request incoming query data
+ * @param {*} response outgoing query data
+ */
 const getUsers = (request, response) => {
     console.log("GET /users");
     if (request.header('key') === settings.api.key) {
@@ -26,6 +35,14 @@ const getUsers = (request, response) => {
     }
 }
 
+/**
+ * GET /users/:username
+ * 
+ * Gets a specific user from the database, if exists.
+ * 
+ * @param {*} request incoming query data
+ * @param {*} response outgoing query data
+ */
 const getUserById = (request, response) => {
     const username = request.params.username
 
@@ -47,6 +64,14 @@ const getUserById = (request, response) => {
 
 }
 
+/**
+ * POST /users
+ * 
+ * Creates a new user in the database
+ * 
+ * @param {*} request incoming query data
+ * @param {*} response outgoing query data
+ */
 const createUser = (request, response) => {
     const { username, ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
 
@@ -68,6 +93,15 @@ const createUser = (request, response) => {
     }
 }
 
+
+/**
+ * PUT /users/:username
+ * 
+ * Update a user in the database, if exists.
+ * 
+ * @param {*} request incoming query response
+ * @param {*} response outgoing query response
+ */
 const updateUser = (request, response) => {
     const username = request.params.username
     const { ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
@@ -91,6 +125,14 @@ const updateUser = (request, response) => {
     }
 }
 
+/**
+ * DEL /users/:username
+ * 
+ * Deletes a user from the database, if exists.
+ * 
+ * @param {*} request incoming query data
+ * @param {*} response outgoing query data
+ */
 const deleteUser = (request, response) => {
     const username = request.params.username
 
@@ -111,10 +153,48 @@ const deleteUser = (request, response) => {
 
 }
 
+const getAllBannedUsers = async (request, response) => {
+
+    console.log(`GET /bannedusers`, request.header('key'));
+
+    if (request.header('key') === settings.api.key) {
+        try {
+            const results = await pool.query('SELECT * FROM users WHERE username_banned = true');
+            response.status(200).send(results.rows)
+        } catch (e){
+            console.log(e.code);
+            response.status(500).send(`Internal Server Error: ${e.code}`)
+        }
+
+    } else {
+        response.status(401).send("Unauthorized");
+    }
+}
+
+const getAllBannedIps = async (request, response) => {
+
+    console.log(`GET /bannedips`);
+
+    if (request.header('key') === settings.api.key) {
+        try {
+            const results = await pool.query('SELECT * FROM users WHERE ip_banned = true');
+            response.status(200).send(results.rows)
+        } catch (e) {
+            console.log(e.code);
+            response.status(500).send(`Internal Server Error: ${e.code}`)
+        }
+
+    } else {
+        response.status(401).send("Unauthorized");
+    }
+}
+
 module.exports = {
     getUsers,
     getUserById,
     createUser,
     updateUser,
     deleteUser,
+    getAllBannedUsers,
+    getAllBannedIps,
 }
