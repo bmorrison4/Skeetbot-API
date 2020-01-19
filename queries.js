@@ -165,6 +165,7 @@ const getAllBannedAccounts = async (request, response) => {
         }
     } else {
         response.status(401).send("Unauthorized");
+    }
 }
 
 const getAllBannedUsers = async (request, response) => {
@@ -175,7 +176,7 @@ const getAllBannedUsers = async (request, response) => {
         try {
             const results = await pool.query('SELECT * FROM users WHERE username_banned = true');
             response.status(200).send(results.rows)
-        } catch (e){
+        } catch (e) {
             console.log(e.code);
             response.status(500).send(`Internal Server Error: ${e.code}`)
         }
@@ -211,4 +212,7 @@ module.exports = {
     deleteUser,
     getAllBannedUsers,
     getAllBannedIps,
+    getAllBannedAccounts
 }
+
+
