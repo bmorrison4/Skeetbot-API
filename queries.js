@@ -153,6 +153,20 @@ const deleteUser = (request, response) => {
 
 }
 
+const getAllBannedAccounts = async (request, response) => {
+    console.log('GET /banned');
+    if (request.header('key') === settings.api.key) {
+        try {
+            const results = await pool.query('SELECT * FROM users WHERE username_banned = true OR ip_banned = true');
+            response.status(200).send(results.rows);
+        } catch (e) {
+            console.log(e.code);
+            response.status(500).send(`Internal Server Error: ${e.code}`);
+        }
+    } else {
+        response.status(401).send("Unauthorized");
+}
+
 const getAllBannedUsers = async (request, response) => {
 
     console.log(`GET /bannedusers`, request.header('key'));
