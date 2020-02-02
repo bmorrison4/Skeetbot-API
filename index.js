@@ -17,14 +17,14 @@ app.get('/', (req, res) => {
 });
 
 
-app.get('/users', db.getUsers);
-app.post('/users', db.createUser);
-app.put('/users/:username', db.updateUser);
-app.delete('/users/:username', db.deleteUser);
-app.get('/banned', db.getAllBannedAccounts);
-app.get('/bannedusers', db.getAllBannedUsers);
-app.get('/bannedips', db.getAllBannedIps);
-app.get('/users/:username', db.getUserById);
+app.get('/api/users', db.getUsers);
+app.post('/api/users', db.createUser);
+app.put('/api/users/:username', db.updateUser);
+app.delete('/api/users/:username', db.deleteUser);
+app.get('/api/banned', db.getAllBannedAccounts);
+app.get('/api/bannedusers', db.getAllBannedUsers);
+app.get('/api/bannedips', db.getAllBannedIps);
+app.get('/api/users/:username', db.getUserById);
 
 app.listen(port, () => {
     console.log(`Rory running on port ${port}`);
