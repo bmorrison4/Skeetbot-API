@@ -50,14 +50,25 @@ const getUserById = (request, response) => {
 
     if (request.header('key') === settings.api.key) {
 
-        pool.query('SELECT * FROM users WHERE username = $1', [username], (error, results) => {
-            if (error) {
-                console.log(error.code);
-                response.status(500).send(`Internal Server Error: ${error.code}`)
-            } else {
-                response.status(200).send(results.rows)
-            }
-        })
+        if (username.indexOf(".") === -1) {
+            pool.query('SELECT * FROM users WHERE username = $1', [username], (error, results) => {
+                if (error) {
+                    console.error(error.code);
+                    response.status(500).send(`Internal Server Error: ${error.code}`);
+                } else {
+                    response.status(200).send(results.rows);
+                }
+            })
+        } else {
+            pool.query('SELECT * FROM users WHERE ip = $1', [username], (error, results) => {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(`Internal Server Error: ${error.code}`);
+                } else {
+                    response.status(200).send(result.rows);
+                }
+            })
+        }
     } else {
         response.status(401).send("Unauthorized");
     }
