@@ -59,7 +59,7 @@ const getUserById = (request, response) => {
                     response.status(200).send(results.rows);
                 }
             })
-        } /*else {
+        } else {
             pool.query('SELECT * FROM users WHERE ip = $1', [username], (error, results) => {
                 if (error) {
                     console.error(error);
@@ -68,7 +68,7 @@ const getUserById = (request, response) => {
                     response.status(200).send(result.rows);
                 }
             })
-        } */    // I don't know what I was thinking, this obviously returns a 502
+        }     // I don't know what I was thinking, this obviously returns a 502
     } else {
         response.status(401).send("Unauthorized");
     }
