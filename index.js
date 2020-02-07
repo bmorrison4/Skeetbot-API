@@ -6,15 +6,17 @@ const port = 3000;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(function(req, res, next) {
+app.use(function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
     res.header("X-Powered-By", "Tears of the damned");
     next();
 });
 
 app.get('/', (req, res) => {
-    res.json({ info: 'Node.js Express API for Rory' })
+    res.send('GET /api/users\nGET /api/users/:username\nGET /api/banned\nGET '
+    + '/api/bannedusers\nGET /api/bannedips\nGET/api/stats\n\nPOST /api/users\n\n'
+    + 'PUT /api/users/:username\n\nDEL /api/users/username')
 });
 
 
