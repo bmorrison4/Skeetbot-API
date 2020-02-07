@@ -10,15 +10,16 @@ const pool = new Pool({
 })
 
 /**
- * GET /users
+ * GET /api/users
  * 
  * Gets all users in the database, sorted in alphabetical order by username.
  * 
- * @param {*} request incoming query data
- * @param {*} response outgoing query data
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
  */
 const getUsers = (request, response) => {
-    console.log("GET /users");
+    console.log("GET /api/users");
     if (request.header('key') === settings.api.key) {
 
         pool.query('SELECT * FROM users ORDER BY username ASC', (error, results) => {
@@ -36,39 +37,28 @@ const getUsers = (request, response) => {
 }
 
 /**
- * GET /users/:username
+ * GET /api/users/:username
  * 
  * Gets a specific user from the database, if exists.
  * 
- * @param {*} request incoming query data
- * @param {*} response outgoing query data
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
  */
 const getUserById = (request, response) => {
     const username = request.params.username
 
-    console.log(`GET /users/${username}`);
+    console.log(`GET /api/users/${username}`);
 
     if (request.header('key') === settings.api.key) {
-
-        if (username.indexOf(".") === -1) {
-            pool.query('SELECT * FROM users WHERE username = $1', [username], (error, results) => {
-                if (error) {
-                    console.error(error.code);
-                    response.status(500).send(`Internal Server Error: ${error.code}`);
-                } else {
-                    response.status(200).send(results.rows);
-                }
-            })
-        } else {
-            pool.query('SELECT * FROM users WHERE ip = $1', [username], (error, results) => {
-                if (error) {
-                    console.error(error);
-                    response.status(500).send(`Internal Server Error: ${error.code}`);
-                } else {
-                    response.status(200).send(result.rows);
-                }
-            })
-        }     // I don't know what I was thinking, this obviously returns a 502
+        pool.query('SELECT * FROM users WHERE username = $1 ORDER BY username ASC', [username], (error, results) => {
+            if (error) {
+                console.error(error.code);
+                response.status(500).send(`Internal Server Error: ${error.code}`);
+            } else {
+                response.status(200).send(results.rows);
+            }
+        })
     } else {
         response.status(401).send("Unauthorized");
     }
@@ -76,17 +66,18 @@ const getUserById = (request, response) => {
 }
 
 /**
- * POST /users
+ * POST /api/users
  * 
  * Creates a new user in the database
  * 
- * @param {*} request incoming query data
- * @param {*} response outgoing query data
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
  */
 const createUser = (request, response) => {
     const { username, ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
 
-    console.log("POST /users")
+    console.log("POST /api/users")
 
     if (request.header('key') === settings.api.key) {
         pool.query(
@@ -106,18 +97,19 @@ const createUser = (request, response) => {
 
 
 /**
- * PUT /users/:username
+ * PUT /api/users/:username
  * 
  * Update a user in the database, if exists.
  * 
- * @param {*} request incoming query response
- * @param {*} response outgoing query response
+ * @async
+ * @param {Express.Request} request incoming query response
+ * @param {Express.Response} response outgoing query response
  */
 const updateUser = (request, response) => {
     const username = request.params.username
     const { ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
 
-    console.log(`PUT /users/${username}`)
+    console.log(`PUT /api/users/${username}`)
 
     if (request.header('key') === settings.api.key) {
         pool.query(
@@ -137,17 +129,18 @@ const updateUser = (request, response) => {
 }
 
 /**
- * DEL /users/:username
+ * DEL /api/users/:username
  * 
  * Deletes a user from the database, if exists.
  * 
- * @param {*} request incoming query data
- * @param {*} response outgoing query data
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
  */
 const deleteUser = (request, response) => {
     const username = request.params.username
 
-    console.log(`DEL /users/${username}`)
+    console.log(`DEL /api/users/${username}`)
 
     if (request.header('key') === settings.api.key) {
         pool.query('DELETE FROM users WHERE username = $1', [username], (error, results) => {
@@ -164,8 +157,18 @@ const deleteUser = (request, response) => {
 
 }
 
+
+/**
+ * GET /api/banned
+ * 
+ * Gets all accounts with a true username or IP ban flag.
+ * 
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
+ */
 const getAllBannedAccounts = async (request, response) => {
-    console.log('GET /banned');
+    console.log('GET /api/banned');
     if (request.header('key') === settings.api.key) {
         try {
             const results = await pool.query('SELECT * FROM users WHERE username_banned = true OR ip_banned = true');
@@ -179,9 +182,18 @@ const getAllBannedAccounts = async (request, response) => {
     }
 }
 
+/**
+ * GET /api/bannedusers
+ * 
+ * Gets all users with a true username ban flag.
+ * 
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
+ */
 const getAllBannedUsers = async (request, response) => {
 
-    console.log(`GET /bannedusers`, request.header('key'));
+    console.log(`GET /api/bannedusers`, request.header('key'));
 
     if (request.header('key') === settings.api.key) {
         try {
@@ -197,9 +209,18 @@ const getAllBannedUsers = async (request, response) => {
     }
 }
 
+/**
+ * GET /api/bannedips
+ * 
+ * Gets all users with a true IP ban flag.
+ * 
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
+ */
 const getAllBannedIps = async (request, response) => {
 
-    console.log(`GET /bannedips`);
+    console.log(`GET /api/bannedips`);
 
     if (request.header('key') === settings.api.key) {
         try {
@@ -215,6 +236,64 @@ const getAllBannedIps = async (request, response) => {
     }
 }
 
+/**
+ * GET /api/stats
+ * 
+ * Gets statistics for the database.
+ * 
+ * { 
+ *  "count": number,
+ *  "bans": number,
+ *  "username_bans": number,
+ *  "ip_bans": number,
+ *  "oldest_seen": Date.ISOString,
+ *  "newest_seen": Date.ISOString
+ * }
+ * 
+ * @async
+ * @param {Express.Request} request incoming query data
+ * @param {Express.Response} response outgoing query data
+ */
+const getStats = async (request, response) => {
+    console.log('GET /api/stats');
+    let results = {
+        count: 0,
+        bans: 0,
+        username_bans: 0,
+        ip_bans: 0,
+        oldest_seen: Date.now(),
+        newest_seen: Date.parse('01 Jan 1970 00:00:00 GMT')
+    }
+
+    try {
+        const users = await pool.query('SELECT * FROM users');
+        results.count = users.rows.length;
+        for (user of users.rows) {
+            if (user.username_banned || user.ip_banned) {
+                results.bans += 1;
+                if (user.username_banned) {
+                    results.username_bans += 1;
+                } else {
+                    results.ip_bans += 1;
+                }
+            }
+
+            if (user.last_seen < results.oldest_seen) {
+                results.oldest_seen = user.last_seen;
+            }
+
+            if (user.last_seen > results.newest_seen) {
+                results.newest_seen = user.last_seen;
+            }
+        }
+
+    } catch (e) {
+        console.log(e.code);
+        response.status(500).send(`Internal Server Error: ${e.code}`);
+    }
+}
+
+
 module.exports = {
     getUsers,
     getUserById,
@@ -223,7 +302,8 @@ module.exports = {
     deleteUser,
     getAllBannedUsers,
     getAllBannedIps,
-    getAllBannedAccounts
+    getAllBannedAccounts,
+    getStats
 }
 
 
