@@ -287,6 +287,8 @@ const getStats = async (request, response) => {
             }
         }
 
+        response.status(200).send(JSON.stringify(results));
+
     } catch (e) {
         console.log(e.code);
         response.status(500).send(`Internal Server Error: ${e.code}`);
