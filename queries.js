@@ -278,6 +278,7 @@ const getStats = async (request, response) => {
                 }
             }
 
+            /** @TODO This seems to be null... */
             if (user.last_seen < results.oldest_seen) {
                 results.oldest_seen = user.last_seen;
             }
@@ -287,7 +288,7 @@ const getStats = async (request, response) => {
             }
         }
 
-        response.status(200).send(JSON.stringify(results));
+        response.status(200).set('Content-Type', "application/json").send(JSON.stringify(results));
 
     } catch (e) {
         console.log(e.code);
