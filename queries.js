@@ -20,7 +20,7 @@ const pool = new Pool({
  */
 const getUsers = (request, response) => {
     console.log("GET /api/users");
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
 
         pool.query('SELECT * FROM users ORDER BY username ASC', (error, results) => {
             if (error) {
@@ -50,7 +50,7 @@ const getUserById = (request, response) => {
 
     console.log(`GET /api/users/${username}`);
 
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         pool.query('SELECT * FROM users WHERE username = $1 ORDER BY username ASC', [username], (error, results) => {
             if (error) {
                 console.error(error.code);
@@ -79,7 +79,7 @@ const createUser = (request, response) => {
 
     console.log("POST /api/users")
 
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         pool.query(
             'INSERT INTO users (username, ip, username_banned, ip_banned, useragent, cores, gpu, last_seen) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
             [username, ip, username_banned, ip_banned, useragent, cores, gpu, last_seen], (error, results) => {
@@ -111,7 +111,7 @@ const updateUser = (request, response) => {
 
     console.log(`PUT /api/users/${username}`)
 
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         pool.query(
             'UPDATE users SET ip = $1, username_banned = $2, ip_banned = $3, useragent = $4, cores = $5, gpu = $6, last_seen = $7 WHERE username = $8',
             [ip, username_banned, ip_banned, useragent, cores, gpu, last_seen, username],
@@ -142,7 +142,7 @@ const deleteUser = (request, response) => {
 
     console.log(`DEL /api/users/${username}`)
 
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         pool.query('DELETE FROM users WHERE username = $1', [username], (error, results) => {
             if (error) {
                 console.log(error.code);
@@ -169,7 +169,7 @@ const deleteUser = (request, response) => {
  */
 const getAllBannedAccounts = async (request, response) => {
     console.log('GET /api/banned');
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         try {
             const results = await pool.query('SELECT * FROM users WHERE username_banned = true OR ip_banned = true');
             response.status(200).send(results.rows);
@@ -195,7 +195,7 @@ const getAllBannedUsers = async (request, response) => {
 
     console.log(`GET /api/bannedusers`, request.header('key'));
 
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         try {
             const results = await pool.query('SELECT * FROM users WHERE username_banned = true');
             response.status(200).send(results.rows)
@@ -222,7 +222,7 @@ const getAllBannedIps = async (request, response) => {
 
     console.log(`GET /api/bannedips`);
 
-    if (request.header('key') === settings.api.key) {
+    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         try {
             const results = await pool.query('SELECT * FROM users WHERE ip_banned = true');
             response.status(200).send(results.rows)
@@ -246,7 +246,6 @@ const getAllBannedIps = async (request, response) => {
  *  "bans": number,
  *  "username_bans": number,
  *  "ip_bans": number,
- *  "oldest_seen": Date.ISOString,
  *  "newest_seen": Date.ISOString
  * }
  * 
@@ -261,7 +260,6 @@ const getStats = async (request, response) => {
         bans: 0,
         username_bans: 0,
         ip_bans: 0,
-        oldest_seen: Date.now(),
         newest_seen: Date.parse('01 Jan 1970 00:00:00 GMT')
     }
 
@@ -273,14 +271,10 @@ const getStats = async (request, response) => {
                 results.bans += 1;
                 if (user.username_banned) {
                     results.username_bans += 1;
-                } else {
+                }
+                if (user.ip_banned) {
                     results.ip_bans += 1;
                 }
-            }
-
-            /** @TODO This seems to be null... */
-            if (user.last_seen < results.oldest_seen) {
-                results.oldest_seen = user.last_seen;
             }
 
             if (user.last_seen > results.newest_seen) {
