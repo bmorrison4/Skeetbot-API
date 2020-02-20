@@ -56,7 +56,11 @@ const getUserById = (request, response) => {
                 console.error(error.code);
                 response.status(500).send(`Internal Server Error: ${error.code}`);
             } else {
-                response.status(200).send(results.rows);
+                if (results.rows.length > 0) {
+                    response.status(200).send(results.rows);
+                } else {
+                    response.status(404).send("User not found with username", username)
+                }
             }
         })
     } else {
@@ -171,7 +175,7 @@ const getAllBannedAccounts = async (request, response) => {
     console.log('GET /api/banned');
     if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         try {
-            const results = await pool.query('SELECT * FROM users WHERE username_banned = true OR ip_banned = true');
+            const results = await pool.query('SELECT * FROM users WHERE username_banned = true OR ip_banned = true ORDER BY username ASC');
             response.status(200).send(results.rows);
         } catch (e) {
             console.log(e.code);
@@ -197,7 +201,7 @@ const getAllBannedUsers = async (request, response) => {
 
     if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         try {
-            const results = await pool.query('SELECT * FROM users WHERE username_banned = true');
+            const results = await pool.query('SELECT * FROM users WHERE username_banned = true ORDER BY username ASC');
             response.status(200).send(results.rows)
         } catch (e) {
             console.log(e.code);
@@ -224,7 +228,7 @@ const getAllBannedIps = async (request, response) => {
 
     if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         try {
-            const results = await pool.query('SELECT * FROM users WHERE ip_banned = true');
+            const results = await pool.query('SELECT * FROM users WHERE ip_banned = true ORDER BY username ASC');
             response.status(200).send(results.rows)
         } catch (e) {
             console.log(e.code);
