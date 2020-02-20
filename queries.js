@@ -59,7 +59,7 @@ const getUserById = (request, response) => {
                 if (results.rows.length > 0) {
                     response.status(200).send(results.rows);
                 } else {
-                    response.status(404).send("User not found with username", username)
+                    response.status(404).send(`User not found with username ${username}`)
                 }
             }
         })
