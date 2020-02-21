@@ -57,9 +57,9 @@ const getUserById = (request, response) => {
                 response.status(500).send(`Internal Server Error: ${error.code}`);
             } else {
                 if (results.rows.length > 0) {
-                    response.status(200).send(results.rows);
+                    response.status(200).send(results.rows[0]);
                 } else {
-                    response.status(404).send(`User not found with username ${username}`)
+                    response.status.send(200).send([])
                 }
             }
         })
