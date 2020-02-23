@@ -189,6 +189,25 @@ module.exports.updateUser = async function (request, response) {
     }
 }
 
+module.exports.updateIp = async function (request, response) {
+    console.log(`PUT /api/ips/}`);
+
+    if (isAuthed(request)) {
+        try {
+            const { ip, banned } = request.body;
+            const results = await pool.query(
+                'UPDATE ips SET banned = $2 WHERE ip = $1',
+                [ip, banned]);
+            response.status(200).send(`IP updated: ${ip}`);
+        } catch (error) {
+            console.error(error);
+            response.status(500).send(`Internal Server Error: PSQL${error.code}`);
+        }        
+    } else {
+        response.status(401).send("Unauthorized");
+    }
+}
+
 /**
  * DEL /api/users/:username
  * 
