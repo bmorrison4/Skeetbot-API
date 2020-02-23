@@ -21,6 +21,7 @@ app.get('/', (req, res) => {
 
 
 app.get('/api/users', db.getAllUsers);
+app.get('/api/ips', db.getAllIps);
 app.post('/api/users', db.createUser);
 app.get('/api/users/:username', db.getUserByUsername);
 app.put('/api/users/:username', db.updateUser);
