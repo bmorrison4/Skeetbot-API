@@ -62,7 +62,7 @@ module.exports.getUserByUsername = async function (request, response) {
         try {
             const username = request.params.username;
             const results = await pool.query('SELECT $1 FROM users', [username]);
-            response.status.send(200).json(results.rows[0]);
+            response.status(200).json(results.rows[0]);
         } catch (error) {
             console.error(error);
             response.status(500).send(`Internal Server Error: PSQL${error.code}`)
