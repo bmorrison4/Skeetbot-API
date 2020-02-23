@@ -88,7 +88,7 @@ module.exports.createUser = async function (request, response) {
         try {
             let status = 500;
             let results = await pool.query(
-                'INSERT INTO users (username, ips, banned, useragent, cores, gpu, last_seen) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                'INSERT INTO users (username, ips, username_banned, useragent, cores, gpu, last_seen) VALUES ($1, $2, $3, $4, $5, $6, $7)',
                 [username, ips, username_banned, useragent, cores, gpu, last_seen]);
             status = 201;
 
