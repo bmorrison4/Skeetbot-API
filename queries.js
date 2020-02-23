@@ -6,31 +6,43 @@ const pool = new Pool({
     host: settings.pg.host,
     database: settings.pg.database,
     password: settings.pg.password,
-    port: settings.pg.port,
+    port: settings.pg.port
 })
+
+/**
+ * Makes sure the request has proper authorization.
+ * 
+ * @param {Express.Request} request Incoming request data
+ * @example
+ *      if (isAuthed(request)) {
+ *          pool.query...
+ *      }
+ * @returns {Boolean} true if correct authorization is present in request header.
+ */
+function isAuthed(request) {
+    return request.header('Authorization') === `Bearer ${settings.api.key}`;
+}
 
 /**
  * GET /api/users
  * 
  * Gets all users in the database, sorted in alphabetical order by username.
  * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const getUsers = (request, response) => {
+module.exports.getAllUsers = function (request, response) {
     console.log("GET /api/users");
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
-
-        pool.query('SELECT * FROM users ORDER BY username ASC', (error, results) => {
-            if (error) {
-                console.log(error.code);
-                response.status(500).send(`Internal Server Error: ${error.code}`)
-
-            } else {
-                response.status(200).json(results.rows)
-            }
-        })
+    if (isAuthed(request)) {
+        pool.query('SELECT * FROM users ORDER BY username ASC',
+            function (error, results) {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(`Internal Server Error: PSQL${error.code}`);
+                } else {
+                    response.status(200).json(results.rows);
+                }
+            })
     } else {
         response.status(401).send("Unauthorized");
     }
@@ -41,32 +53,25 @@ const getUsers = (request, response) => {
  * 
  * Gets a specific user from the database, if exists.
  * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const getUserById = (request, response) => {
-    const username = request.params.username
-
+module.exports.getUserByUsername = function (request, response) {
     console.log(`GET /api/users/${username}`);
+    if (isAuthed(request)) {
+        const username = request.params.username;
 
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
-        pool.query('SELECT * FROM users WHERE username = $1 ORDER BY username ASC', [username], (error, results) => {
-            if (error) {
-                console.error(error.code);
-                response.status(500).send(`Internal Server Error: ${error.code}`);
+        pool.query('SELECT $1 FROM users', [username], function (error, results) {
+            if (!error) {
+                console.error(error);
+                response.status(500).send(`Internal Server Error: PSQL${error.code}`)
             } else {
-                if (results.rows.length > 0) {
-                    response.status(200).send(results.rows[0]);
-                } else {
-                    response.status.send(200).send([])
-                }
+                response.status.send(200).json(results.rows[0]);
             }
         })
     } else {
         response.status(401).send("Unauthorized");
     }
-
 }
 
 /**
@@ -74,61 +79,92 @@ const getUserById = (request, response) => {
  * 
  * Creates a new user in the database
  * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const createUser = (request, response) => {
-    const { username, ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
+module.exports.createUser = function (request, response) {
+    console.log("POST /api/users");
+    if (isAuthed(request)) {
+        const { username, ips, username_banned, useragent, cores, gpu, last_seen, ip_banned } = request.body;
 
-    console.log("POST /api/users")
-
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
+        let status = 0;
         pool.query(
-            'INSERT INTO users (username, ip, username_banned, ip_banned, useragent, cores, gpu, last_seen) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-            [username, ip, username_banned, ip_banned, useragent, cores, gpu, last_seen], (error, results) => {
+            'INSERT INTO users (username, ips, username_banned, useragent, cores, gpu, last_seen), values ($1,$2,$3,$4,$5,$6,$7)',
+            [username, ips, username_banned, useragent, cores, gpu, last_seen], function (error, results) {
                 if (error) {
-                    console.log(error.code);
-                    response.status(500).send(`Internal Server Error: ${error.code}`);
+                    console.error(error);
+                    status = 500;
                 } else {
-                    response.status(201).send(`User added with ID: ${username}`)
+                    status = 201;
                 }
-            })
+            });
+
+        pool.query(
+            'INSERT INTO ips ($1, $2) ON CONFLICT DO NOTHING', [ips[0], ip_banned], function (error, results) {
+                if (error) {
+                    console.error(error);
+                    status = 500;
+                } else {
+                    status = 201;
+                }
+            });
+
+        if (status === 200) {
+            response.status(200).send(`User created with username ${username}`);
+        } else {
+            response.status(status).send("Something's gone wrong.");
+        }
+
     } else {
         response.status(401).send("Unauthorized");
     }
 }
 
-
 /**
  * PUT /api/users/:username
  * 
- * Update a user in the database, if exists.
- * 
- * @async
- * @param {Express.Request} request incoming query response
- * @param {Express.Response} response outgoing query response
+ * Update a user in the database, if exists
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const updateUser = (request, response) => {
-    const username = request.params.username
-    const { ip, useragent, cores, gpu, username_banned, ip_banned, last_seen } = request.body
+module.exports.updateUser = function (request, response) {
+    console.log(`PUT /api/users/${username}`);
 
-    console.log(`PUT /api/users/${username}`)
+    if (isAuthed(request)) {
+        const username = request.params.username;
+        const { ips, useragent, cores, gpu, username_banned, ip_banned, last_seen, current_ip } = request.body;
+        let status = 0;
 
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
         pool.query(
-            'UPDATE users SET ip = $1, username_banned = $2, ip_banned = $3, useragent = $4, cores = $5, gpu = $6, last_seen = $7 WHERE username = $8',
-            [ip, username_banned, ip_banned, useragent, cores, gpu, last_seen, username],
-            (error, results) => {
+            'UPDATE users SET cores = $1, gpu = $2, ips = $3, last_seen = $5, useragent = $5, username_banned = $7 WHERE username = $6',
+            [cores, gpu, ips, last_seen, useragent, username, username_banned],
+            function (error, results) {
                 if (error) {
-                    console.log(error.code);
-                    response.status(500).send(`Internal Server Error: ${error.code}`)
+                    console.error(error);
+                    status = 500;
                 } else {
-                    response.status(200).send(`User modified with usernmame: ${username}`)
+                    status = 200;
                 }
-            })
+            });
+
+        pool.query(
+            'UPDATE ips SET banned = $1 WHERE ip = $2', [ip_banned, current_ip],
+            function (error, response) {
+                if (error) {
+                    console.error(error);
+                    status = 500;
+                } else {
+                    status = 200;
+                }
+            });
+
+        if (status === 200) {
+            response.status(200).send(`User modified with username ${username}, ip ${current_ip}`);
+        } else {
+            response.status(status).send("Something went wrong...");
+        }
     } else {
-        response.status(401).send("Unauthorized");
+        response.status(401).send("Unauthorized.");
     }
 }
 
@@ -137,77 +173,50 @@ const updateUser = (request, response) => {
  * 
  * Deletes a user from the database, if exists.
  * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const deleteUser = (request, response) => {
-    const username = request.params.username
-
+module.exports.deleteUser = function (request, response) {
     console.log(`DEL /api/users/${username}`)
+    if (isAuthed(request)) {
+        const username = request.params.username;
 
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
-        pool.query('DELETE FROM users WHERE username = $1', [username], (error, results) => {
-            if (error) {
-                console.log(error.code);
-                response.status(500).send(`Internal Server Error: ${error.code}`)
-            } else {
-                response.status(200).send(`User deleted with ID: ${username}`)
-            }
-        })
+        pool.query('DELETE FROM users WHERE username = $1', [username],
+            function (error, results) {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(`Internal Server Error: PSQL${error.code}`);
+                } else {
+                    response.status(200).send(`User deleted with username: ${username}`);
+                }
+            })
     } else {
-        response.status(401).send("Unauthorized");
-    }
-
-}
-
-
-/**
- * GET /api/banned
- * 
- * Gets all accounts with a true username or IP ban flag.
- * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
- */
-const getAllBannedAccounts = async (request, response) => {
-    console.log('GET /api/banned');
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
-        try {
-            const results = await pool.query('SELECT * FROM users WHERE username_banned = true OR ip_banned = true ORDER BY username ASC');
-            response.status(200).send(results.rows);
-        } catch (e) {
-            console.log(e.code);
-            response.status(500).send(`Internal Server Error: ${e.code}`);
-        }
-    } else {
-        response.status(401).send("Unauthorized");
+        response.status(401).send("Unauthorized.");
     }
 }
 
 /**
  * GET /api/bannedusers
  * 
- * Gets all users with a true username ban flag.
+ * Gets all users witha true username ban flag.
  * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const getAllBannedUsers = async (request, response) => {
+module.exports.getAllBannedUsers = function (request, response) {
+    console.log("GET /api/bannedusers");
 
-    console.log(`GET /api/bannedusers`, request.header('key'));
-
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
-        try {
-            const results = await pool.query('SELECT * FROM users WHERE username_banned = true ORDER BY username ASC');
-            response.status(200).send(results.rows)
-        } catch (e) {
-            console.log(e.code);
-            response.status(500).send(`Internal Server Error: ${e.code}`)
-        }
-
+    if (isAuthed(request)) {
+        pool.query(
+            'SELECT * FROM users WHERE username_banned = true ORDER BY username ASC',
+            function (error, response) {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(`Internal Server Error: PSQL${error.code}`);
+                } else {
+                    response.status(200).json(results.rows);
+                }
+            })
     } else {
         response.status(401).send("Unauthorized");
     }
@@ -216,25 +225,25 @@ const getAllBannedUsers = async (request, response) => {
 /**
  * GET /api/bannedips
  * 
- * Gets all users with a true IP ban flag.
+ * Gets all ips witha true ban flag.
  * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const getAllBannedIps = async (request, response) => {
+module.exports.getAllBannedIps = function (request, response) {
+    console.log("GET /api/bannedips");
 
-    console.log(`GET /api/bannedips`);
-
-    if (request.header('Authorization') === `Bearer ${settings.api.key}`) {
-        try {
-            const results = await pool.query('SELECT * FROM users WHERE ip_banned = true ORDER BY username ASC');
-            response.status(200).send(results.rows)
-        } catch (e) {
-            console.log(e.code);
-            response.status(500).send(`Internal Server Error: ${e.code}`)
-        }
-
+    if (isAuthed(request)) {
+        pool.query(
+            'SELECT * FROM ips WHERE banned = true',
+            function (error, response) {
+                if (error) {
+                    console.error(error);
+                    response.status(500).send(`Internal Server Error: PSQL${error.code}`);
+                } else {
+                    response.status(200).json(results.rows);
+                }
+            })
     } else {
         response.status(401).send("Unauthorized");
     }
@@ -243,68 +252,22 @@ const getAllBannedIps = async (request, response) => {
 /**
  * GET /api/stats
  * 
- * Gets statistics for the database.
+ * Gets statistics about the database
  * 
- * { 
- *  "count": number,
- *  "bans": number,
- *  "username_bans": number,
- *  "ip_bans": number,
+ * {
+ *  "count": number
+ *  "bans": number
+ *  "username_bans": number
+ *  "ip_bans": number
  *  "newest_seen": Date.ISOString
  * }
  * 
- * @async
- * @param {Express.Request} request incoming query data
- * @param {Express.Response} response outgoing query data
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
  */
-const getStats = async (request, response) => {
-    console.log('GET /api/stats');
-    let results = {
-        count: 0,
-        bans: 0,
-        username_bans: 0,
-        ip_bans: 0,
-        newest_seen: Date.parse('01 Jan 1970 00:00:00 GMT')
-    }
+module.exports.getStats = function (request, response) {
+    console.log("GET /api/stats");
 
-    try {
-        const users = await pool.query('SELECT * FROM users');
-        results.count = users.rows.length;
-        for (user of users.rows) {
-            if (user.username_banned || user.ip_banned) {
-                results.bans += 1;
-                if (user.username_banned) {
-                    results.username_bans += 1;
-                }
-                if (user.ip_banned) {
-                    results.ip_bans += 1;
-                }
-            }
+    response.status(501).send("Not implemented");
 
-            if (user.last_seen > results.newest_seen) {
-                results.newest_seen = user.last_seen;
-            }
-        }
-
-        response.status(200).set('Content-Type', "application/json").send(JSON.stringify(results));
-
-    } catch (e) {
-        console.log(e.code);
-        response.status(500).send(`Internal Server Error: ${e.code}`);
-    }
 }
-
-
-module.exports = {
-    getUsers,
-    getUserById,
-    createUser,
-    updateUser,
-    deleteUser,
-    getAllBannedUsers,
-    getAllBannedIps,
-    getAllBannedAccounts,
-    getStats
-}
-
-

@@ -20,12 +20,12 @@ app.get('/', (req, res) => {
 });
 
 
-app.get('/api/users', db.getUsers);
+app.get('/api/users', db.getAllUsers);
 app.post('/api/users', db.createUser);
-app.get('/api/users/:username', db.getUserById);
+app.get('/api/users/:username', db.getUserByUsername);
 app.put('/api/users/:username', db.updateUser);
 app.delete('/api/users/:username', db.deleteUser);
-app.get('/api/banned', db.getAllBannedAccounts);
+// app.get('/api/banned', db.getAllBannedAccounts);
 app.get('/api/bannedusers', db.getAllBannedUsers);
 app.get('/api/bannedips', db.getAllBannedIps);
 app.get('/api/stats', db.getStats);
