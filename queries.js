@@ -86,34 +86,39 @@ module.exports.createUser = function (request, response) {
     console.log("POST /api/users");
     if (isAuthed(request)) {
         const { username, ips, username_banned, useragent, cores, gpu, last_seen, ip_banned } = request.body;
+        try {
 
-        let status = 0;
-        pool.query(
-            'INSERT INTO users (username, ips, username_banned, useragent, cores, gpu, last_seen), values ($1,$2,$3,$4,$5,$6,$7)',
-            [username, ips, username_banned, useragent, cores, gpu, last_seen], function (error, results) {
-                if (error) {
-                    console.error(error);
-                    status = 500;
-                } else {
-                    status = 201;
-                }
-            });
-
-        pool.query(
-            'INSERT INTO ips ($1, $2) ON CONFLICT DO NOTHING', [ips[0], ip_banned], function (error, results) {
-                if (error) {
-                    console.error(error);
-                    status = 500;
-                } else {
-                    status = 201;
-                }
-            });
+            let status = 0;
+            pool.query(
+                'INSERT INTO users (username, ips, username_banned, useragent, cores, gpu, last_seen), values ($1,$2,$3,$4,$5,$6,$7)',
+                [username, ips, username_banned, useragent, cores, gpu, last_seen], function (error, results) {
+                    if (error) {
+                        console.error(error);
+                        status = 500;
+                    } else {
+                        status = 201;
+                    }
+                });
+                
+                pool.query(
+                    'INSERT INTO ips ($1, $2) ON CONFLICT DO NOTHING', [ips[0], ip_banned], function (error, results) {
+                        if (error) {
+                            console.error(error);
+                            status = 500;
+                        } else {
+                            status = 201;
+                        }
+                    });
 
         if (status === 200) {
             response.status(200).send(`User created with username ${username}`);
         } else {
             response.status(status).send("Something's gone wrong.");
         }
+    } catch (e) {
+        console.error(e);
+        response.status(500).send();
+    }
 
     } else {
         response.status(401).send("Unauthorized");
