@@ -57,7 +57,7 @@ module.exports.getAllUsers = async function (request, response) {
  * @param {Express.Response} response Outgoing query data
  */
 module.exports.getUserByUsername = async function (request, response) {
-    console.log(`GET /api/users/${username}`);
+    console.log(`GET /api/users/${request.params.username}`);
     if (isAuthed(request)) {
         try {
             const username = request.params.username;
@@ -120,7 +120,7 @@ module.exports.createUser = async function (request, response) {
  * @param {Express.Response} response Outgoing query data
  */
 module.exports.updateUser = async function (request, response) {
-    console.log(`PUT /api/users/${username}`);
+    console.log(`PUT /api/users/${request.params.username}`);
 
     if (isAuthed(request)) {
         try {
@@ -163,7 +163,7 @@ module.exports.updateUser = async function (request, response) {
  * @param {Express.Response} response Outgoing query data
  */
 module.exports.deleteUser = async function (request, response) {
-    console.log(`DEL /api/users/${username}`)
+    console.log(`DEL /api/users/${request.params.username}`)
     if (isAuthed(request)) {
         try {
             const username = request.params.username;
