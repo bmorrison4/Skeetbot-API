@@ -121,25 +121,33 @@ module.exports.createUser = async function (request, response) {
         try {
             let status = 500;
             let results = await pool.query(
-                'INSERT INTO users (username, ips, username_banned, useragent, cores, gpu, last_seen) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                'INSERT INTO users (username, ips, username_banned, useragent, cores, gpu, last_seen) VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING',
                 [username, ips, username_banned, useragent, cores, gpu, last_seen]);
-            status = 201;
-
-            results = await pool.query(
-                'INSERT INTO ips (ip, banned) VALUES ($1, $2) ON CONFLICT DO NOTHING', [ips[0], ip_banned]);
-            status = 201;
-
-            if (status === 201) {
-                response.status(200).send(`User created with username ${username}`);
-            } else {
-                response.status(status).send("Something's gone wrong.");
-            }
+            response.status(201).send(`User created with username ${username}`);
         } catch (e) {
             console.error(e);
             response.status(500).send();
         }
     } else {
         response.status(401).send("Unauthorized");
+    }
+}
+
+module.exports.createIp = async function (request, response) {
+    console.log("POST /api/ips");
+    if (isAuthed(request)) {
+        const {ip, banned } = request.body;
+        try {
+            let results = await pool.query(
+                'INSERT INTO ips (ip, banned) VALUES ($1, $2) ON CONFLICT DO NOTHING', [ip, banned]
+            );
+            response.status(201).send(`IP created with ip ${ip}`);
+        } catch (e) {
+            console.error(e);
+            response.status(500).send(`Internal Server Error: PSQL${error.code}`);
+        }
+    } else {
+        response.status(401).send("Unauthorized.");
     }
 }
 
@@ -160,26 +168,11 @@ module.exports.updateUser = async function (request, response) {
     if (isAuthed(request)) {
         try {
             const username = request.params.username;
-            const { ips, useragent, cores, gpu, username_banned, ip_banned, last_seen, current_ip } = request.body;
-            let status = 500;
-
+            const { ips, useragent, cores, gpu, username_banned, last_seen } = request.body;
             let results = await pool.query(
                 'UPDATE users SET cores = $1, gpu = $2, ips = $3, last_seen = $4, useragent = $5, username_banned = $7 WHERE username = $6',
                 [cores, gpu, ips, last_seen, useragent, username, username_banned]);
-            status = 200;
-
-
-            results = await pool.query(
-                'UPDATE ips SET banned = $1 WHERE ip = $2', [ip_banned, current_ip]);
-            status = 200;
-
-
-            if (status === 200) {
-                response.status(200).send(`User modified with username ${username}, ip ${current_ip}`);
-            } else {
-                response.status(status).send("Something went wrong...");
-            }
-
+            response.status(200).send(`User modified with username ${username}`);
         } catch (error) {
             console.error(error);
             response.status(500).send(`Internal Server Error: PSQL${error.code}`)
@@ -202,7 +195,25 @@ module.exports.updateIp = async function (request, response) {
         } catch (error) {
             console.error(error);
             response.status(500).send(`Internal Server Error: PSQL${error.code}`);
-        }        
+        }
+    } else {
+        response.status(401).send("Unauthorized");
+    }
+}
+
+module.exports.getIp = async function (request, response) {
+    console.log("GET /api/ip");
+
+    if (isAuthed(request)) {
+        try {
+            const { ip } = request.body;
+            const results = await pool.query(
+                'SELECT * FROM ips WHERE ip = $1', [ip]);
+            response.status(200).send(results.rows);
+        } catch (error) {
+            console.error(error);
+            response.status(500).send(`Internal Server Error: PSQL${error.code}`);
+        }
     } else {
         response.status(401).send("Unauthorized");
     }

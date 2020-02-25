@@ -22,8 +22,10 @@ app.get('/', (req, res) => {
 
 app.get('/api/users', db.getAllUsers);
 app.get('/api/ips', db.getAllIps);
-app.put('/api/ips/', db.updateIp);
+app.put('/api/ips', db.updateIp);
+app.get('/api/ip', db.getIp);
 app.post('/api/users', db.createUser);
+app.post('/api/ips', db.createIp);
 app.get('/api/users/:username', db.getUserByUsername);
 app.put('/api/users/:username', db.updateUser);
 app.delete('/api/users/:username', db.deleteUser);
