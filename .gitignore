@@ -1,3 +1,5 @@
 node_modules/
 settings.json
 db.sql
+settings.old.json
+queries.old.js
