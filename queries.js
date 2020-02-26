@@ -133,10 +133,19 @@ module.exports.createUser = async function (request, response) {
     }
 }
 
+/**
+ * POST /api/ips
+ * 
+ * Creates an IP entry in the database
+ * 
+ * @async
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
+ */
 module.exports.createIp = async function (request, response) {
     console.log("POST /api/ips");
     if (isAuthed(request)) {
-        const {ip, banned } = request.body;
+        const { ip, banned } = request.body;
         try {
             let results = await pool.query(
                 'INSERT INTO ips (ip, banned) VALUES ($1, $2) ON CONFLICT DO NOTHING', [ip, banned]
@@ -182,8 +191,19 @@ module.exports.updateUser = async function (request, response) {
     }
 }
 
+/**
+ * PUT /api/ips
+ * 
+ * Update an existing IP
+ * 
+ * works
+ *
+ * @async
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
+ */
 module.exports.updateIp = async function (request, response) {
-    console.log(`PUT /api/ips/}`);
+    console.log(`PUT /api/ips`);
 
     if (isAuthed(request)) {
         try {
@@ -201,6 +221,18 @@ module.exports.updateIp = async function (request, response) {
     }
 }
 
+/**
+ * GET /api/ip
+ * 
+ * Get an IP if exists. There is no IP parameter in the URL because nginx
+ * intercepts it as a file request and issues a 502 instead.
+ * 
+ * works
+ *
+ * @async
+ * @param {Express.Request} request Incoming query data
+ * @param {Express.Response} response Outgoing query data
+ */
 module.exports.getIp = async function (request, response) {
     console.log("GET /api/ip");
 
@@ -223,6 +255,8 @@ module.exports.getIp = async function (request, response) {
  * DEL /api/users/:username
  * 
  * Deletes a user from the database, if exists.
+ * 
+ * works
  * 
  * @async
  * @param {Express.Request} request Incoming query data
@@ -306,16 +340,20 @@ module.exports.getAllBannedIps = async function (request, response) {
  * 
  * Gets statistics about the database
  * 
- * {
- *  "count": number
- *  "bans": number
- *  "username_bans": number
- *  "ip_bans": number
- *  "newest_seen": Date.ISOString
- * }
+ * @typedef {Object} Data
+ * @property {number} users the number of tracked users in the database
+ * @property {number} ips the number of tracked IPs in the database
+ * @property {number} username_bans the number of banned users in the database
+ * @property {number} ip_bans the number of banned ips in the database
+ * @property {Date} newest_seen the most recent time a user has been updated in the database
+ * @property {Date} newest_banned the most recent time a user who has been banned has been updated in the database.
  * 
+ * works
+ * 
+ * @async
  * @param {Express.Request} request Incoming query data
  * @param {Express.Response} response Outgoing query data
+ * @returns {Data} statistics for the database.
  */
 module.exports.getStats = async function (request, response) {
     console.log("GET /api/stats");
