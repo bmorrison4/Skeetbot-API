@@ -317,9 +317,44 @@ module.exports.getAllBannedIps = async function (request, response) {
  * @param {Express.Request} request Incoming query data
  * @param {Express.Response} response Outgoing query data
  */
-module.exports.getStats = function (request, response) {
+module.exports.getStats = async function (request, response) {
     console.log("GET /api/stats");
+    let data = {
+        users: undefined,
+        ips: undefined,
+        username_bans: undefined,
+        ip_bans: undefined,
+        newest_seen: undefined,
+        newest_banned: undefined
+    }
+    try {
+        // users count
+        let results = await pool.query('SELECT COUNT(*) FROM users');
+        data.users = results.rows[0].count;
 
-    response.status(501).send("Not implemented");
+        // IPs count
+        results = await pool.query('SELECT COUNT(*) FROM ips');
+        data.ips = results.rows[0].count;
 
+        // username bans count
+        results = await pool.query('SELECT COUNT(*) FROM users WHERE username_banned = true');
+        data.username_bans = results.rows[0].count;
+
+        // ip bans count
+        results = await pool.query('SELECT COUNT(*) FROM ips WHERE banned = true');
+        data.ip_bans = results.rows[0].count;
+
+        // newest seen
+        results = await pool.query('SELECT last_seen FROM users ORDER BY last_seen DESC LIMIT 1');
+        data.newest_seen = results.rows[0].last_seen;
+
+        // Newest banned
+        results = await pool.query('SELECT last_seen FROM users WHERE username_banned = true ORDER BY last_seen DESC LIMIT 1');
+        data.newest_banned = results.rows[0].last_seen;
+
+        response.status(200).send(data);
+
+    } catch (e) {
+        console.error(e);
+    }
 }
