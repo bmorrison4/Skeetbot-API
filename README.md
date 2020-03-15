@@ -1,5 +1,5 @@
-# Rory API
-Database microservice for database access for SkeetBot and RemoBot.
+# SkeetBot API
+Database microservice for database access for SkeetBot.
 
 All requests require a header key for authorization.
 
